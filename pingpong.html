@@ -7,27 +7,46 @@
     <style>
         body {
             display: flex;
-            justify-content: center;
+            flex-direction: column;
             align-items: center;
             height: 100vh;
             background-color: #000;
             margin: 0;
+            color: white;
         }
         canvas {
             background-color: #fff;
         }
+        #scoreBoard, #message {
+            margin: 10px;
+            font-size: 20px;
+        }
+        #insertCoin {
+            display: none;
+            font-size: 20px;
+            padding: 10px 20px;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
+    <div id="scoreBoard">Player 1: 0 | Player 2: 0</div>
     <canvas id="gameCanvas" width="800" height="400"></canvas>
+    <button id="insertCoin" onclick="startNewRound()">Insert Coin for New Ball</button>
+    <div id="message"></div>
 
     <script>
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
+        const scoreBoard = document.getElementById('scoreBoard');
+        const insertCoinButton = document.getElementById('insertCoin');
+        const message = document.getElementById('message');
 
         const paddleWidth = 10;
         const paddleHeight = 100;
         const ballSize = 10;
+        const winScore = 10;
+        const speedIncrease = 1.012;
 
         const leftPaddle = {
             x: 10,
@@ -45,13 +64,20 @@
             dy: 0
         };
 
-        const ball = {
+        let ball = {
             x: canvas.width / 2,
             y: canvas.height / 2,
             size: ballSize,
             dx: 4,
             dy: 4
         };
+
+        let score = {
+            player1: 0,
+            player2: 0
+        };
+
+        let gameRunning = true;
 
         function drawPaddle(paddle) {
             ctx.fillStyle = '#000';
@@ -64,6 +90,8 @@
         }
 
         function update() {
+            if (!gameRunning) return;
+
             // Move paddles
             leftPaddle.y += leftPaddle.dy;
             rightPaddle.y += rightPaddle.dy;
@@ -88,6 +116,8 @@
                 ball.y <= leftPaddle.y + leftPaddle.height
             ) {
                 ball.dx *= -1;
+                ball.dx *= speedIncrease;
+                ball.dy *= speedIncrease;
             }
 
             if (
@@ -96,13 +126,19 @@
                 ball.y <= rightPaddle.y + rightPaddle.height
             ) {
                 ball.dx *= -1;
+                ball.dx *= speedIncrease;
+                ball.dy *= speedIncrease;
             }
 
             // Ball goes out of bounds
-            if (ball.x <= 0 || ball.x + ball.size >= canvas.width) {
-                ball.x = canvas.width / 2;
-                ball.y = canvas.height / 2;
-                ball.dx *= -1;
+            if (ball.x <= 0) {
+                score.player2++;
+                checkWin();
+                resetBall();
+            } else if (ball.x + ball.size >= canvas.width) {
+                score.player1++;
+                checkWin();
+                resetBall();
             }
 
             // Clear canvas
@@ -114,6 +150,36 @@
             drawBall();
 
             requestAnimationFrame(update);
+        }
+
+        function checkWin() {
+            scoreBoard.textContent = `Player 1: ${score.player1} | Player 2: ${score.player2}`;
+            if (score.player1 >= winScore) {
+                gameRunning = false;
+                message.textContent = 'Player 1 is the Winner!';
+                insertCoinButton.style.display = 'none';
+            } else if (score.player2 >= winScore) {
+                gameRunning = false;
+                message.textContent = 'Player 2 is the Winner!';
+                insertCoinButton.style.display = 'none';
+            } else {
+                insertCoinButton.style.display = 'block';
+            }
+        }
+
+        function resetBall() {
+            ball.x = canvas.width / 2;
+            ball.y = canvas.height / 2;
+            ball.dx = 4 * (Math.random() > 0.5 ? 1 : -1);
+            ball.dy = 4 * (Math.random() > 0.5 ? 1 : -1);
+            gameRunning = false;
+        }
+
+        function startNewRound() {
+            insertCoinButton.style.display = 'none';
+            message.textContent = '';
+            gameRunning = true;
+            update();
         }
 
         function keyDown(e) {
